@@ -1,4 +1,5 @@
 //jshint esversion:6
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const ejs = require('ejs');
@@ -9,15 +10,13 @@ app.use(express.static("public"));
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 
-
-
 mongoose.connect("mongodb://localhost:27017/userlistDB");
 const UserSchema= new mongoose.Schema({
     username:String,
     password:String
 });
-const secret="this is a secret message"
-UserSchema.plugin(encrypt,{secret:secret,encryptedFields:["password"]});
+
+UserSchema.plugin(encrypt,{secret:process.env.SECRET,encryptedFields:["password"]});
 
 
 
