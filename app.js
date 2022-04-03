@@ -5,20 +5,17 @@ const mongoose = require('mongoose');
 const ejs = require('ejs');
 const app = express();
 const bodyParser = require('body-parser');
-const encrypt = require('mongoose-encryption');
+const md5 = require('md5');
 app.use(express.static("public"));
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
+
 
 mongoose.connect("mongodb://localhost:27017/userlistDB");
 const UserSchema= new mongoose.Schema({
     username:String,
     password:String
 });
-
-UserSchema.plugin(encrypt,{secret:process.env.SECRET,encryptedFields:["password"]});
-
-
 
 const User=new mongoose.model('User', UserSchema);
 
@@ -41,7 +38,7 @@ app.post("/register", (req,res) => {
         if (user==null) {
             const NewUser = new User({
                 username: req.body.username,
-                password: req.body.password
+                password: md5(req.body.password)
             });
             NewUser.save((err)=>{
                 if (err) {
@@ -58,9 +55,11 @@ app.post("/register", (req,res) => {
 });
 
 app.post("/login", (req, res) => {
-    User.findOne({username:req.body.username}, (err, user) => {
+    const username = req.body.username;
+    const password = req.body.password;
+    User.findOne({username:username}, (err, user) => {
         if (user){
-            if (user.password === req.body.password){
+            if (user.password === md5(password)){
                 res.render("secrets");
             }else{
                 res.send("<h1 align='center'>please check your password<h1>");
