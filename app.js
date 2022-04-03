@@ -5,7 +5,8 @@ const mongoose = require('mongoose');
 const ejs = require('ejs');
 const app = express();
 const bodyParser = require('body-parser');
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
+const saltRounds=10;
 app.use(express.static("public"));
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
@@ -34,23 +35,26 @@ res.render('register');
 
 
 app.post("/register", (req,res) => {
-    User.findOne({username:req.body.username}, (err, user) => {
-        if (user==null) {
-            const NewUser = new User({
-                username: req.body.username,
-                password: md5(req.body.password)
-            });
-            NewUser.save((err)=>{
-                if (err) {
-                    res.send(err);
-                }else{
-                    res.render('secrets');
-                }
-            });
-            
-        }else {
-            res.render("login");
-        }
+    bcrypt.hash(req.body.password, saltRounds, (err,hash) => {
+        User.findOne({username:req.body.username}, (err, user) => {
+            if (user==null) {
+                const NewUser = new User({
+                    username: req.body.username,
+                    password: hash
+                });
+                NewUser.save((err)=>{
+                    if (err) {
+                        res.send(err);
+                    }else{
+                        res.render('secrets');
+                    }
+                });
+                
+            }else {
+                res.render("login");
+            }
+        });
+
     });
 });
 
@@ -59,16 +63,16 @@ app.post("/login", (req, res) => {
     const password = req.body.password;
     User.findOne({username:username}, (err, user) => {
         if (user){
-            if (user.password === md5(password)){
-                res.render("secrets");
-            }else{
-                res.send("<h1 align='center'>please check your password<h1>");
-            }
-        }else{
-            console.log(err)
-            res.send("<h1 align='center'>user not found<h1>");
-        }
-        
+            bcrypt.compare(password,user.password,(err, result) => {
+                if (result===true) {
+                    res.render("secrets");
+                }else if (result===false) {
+                    res.send("<h1 align='center'>please check your password<h1>");
+                }
+            });
+}else{
+    res.send("<h1 align='center'>User not found</h1>");
+}
     });
 });
 app.listen(3000,()=>{
